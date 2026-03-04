@@ -1,0 +1,28 @@
+# Load Balancer Configuration
+# This file configures the load balancer behavior
+
+server:
+  address: "0.0.0.0"
+  port: 8090
+
+backends:
+  urls:
+    - http://localhost:8081
+    - http://localhost:8082
+    - http://localhost:8083
+
+# Strategy: "roundrobin" or "leastconnection"
+strategy: roundrobin
+
+circuit:
+  failure_threshold: 3
+  timeout: 10s
+
+health:
+  interval: 5s
+  timeout: 2s
+
+metrics:
+  enabled: true
+  port: 8090
+  path: /metrics
