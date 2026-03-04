@@ -27,7 +27,7 @@ func main() {
 	//     loadbalancer.MakeLoadBalancer(5)
 
 	pool := balancer.NewBackendPool()
-
+   // dynamic choosing of number of balancers
 	pool.AddBackend(balancer.NewBackend("http://localhost:8081"))
 	pool.AddBackend(balancer.NewBackend("http://localhost:8082"))
 	pool.AddBackend(balancer.NewBackend("http://localhost:8083"))
@@ -42,8 +42,9 @@ func main() {
 	// 	fmt.Println(b.URL)
 	// }
 
-	breaker :=circuit.NewBreaker(3,10*time.Second)
-
+	breaker :=circuit.NewBreaker(3,10*time.Second) 
+	
+ 
 	lb:=proxy.NewLoadBalancer(strategy,breaker)
 	fmt.Println("Starting load balancer on :8090")
 	http.ListenAndServe(":8090",lb)

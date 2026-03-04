@@ -86,6 +86,12 @@ func (b *Backend) ResetFailure(){
 	b.FailureCount=0
 }
 
+func (b *Backend) IncrementFailures(){
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.FailureCount++
+}
+
 //for health check
 func (b *Backend) isBackendHealthy(){
 	timeout :=3*time.Second

@@ -20,31 +20,51 @@ func  NewBreaker(failureThreashold int,cooldown time.Duration) *Breaker{
 		cooldown: cooldown,
 	}
 }
-
 func (br *Breaker) AllowRequest(b *balancer.Backend) bool {
-	state:=b.CircuitState
+    br.mu.Lock()
+    defer br.mu.Unlock()
 
-	if state ==balancer.Open{
-		if time.Since(b.LastFailureTime)>br.cooldown{
-			b.SetCircuitState(balancer.HalfOpen)
-			return true
-		}
-		return false
-	}
-	return true
+    switch b.CircuitState {
 
+    case balancer.Open:
+        if time.Since(b.LastFailureTime) > br.cooldown {
+            b.SetCircuitState(balancer.HalfOpen)
+            return true // allow ONE request
+        }
+        return false
+
+    case balancer.HalfOpen:
+        // allow only one probe request
+        return false
+
+    case balancer.Closed:
+        return true
+    }
+
+    return true
 }
 
-func (br *Breaker) RecordFailures(b *balancer.Backend){
-	b.IncrementConnections()
-	
-	if b.FailureCount >=br.failureThreashold{
-		b.SetCircuitState(balancer.Open)
-		b.SetLastFailureTime(time.Now())
-	}
-}
+func (br *Breaker) RecordFailures(b *balancer.Backend) {
+    br.mu.Lock()
+    defer br.mu.Unlock()
 
-func (br *Breaker) RecordSuccess(b *balancer.Backend){
-	b.ResetFailure()
-	b.SetCircuitState(balancer.Closed)
+    if b.CircuitState == balancer.HalfOpen {
+        b.SetCircuitState(balancer.Open)
+        b.SetLastFailureTime(time.Now())
+        return
+    }
+
+    b.IncrementFailures()
+
+    if b.FailureCount >= br.failureThreashold {
+        b.SetCircuitState(balancer.Open)
+        b.SetLastFailureTime(time.Now())
+    }
+}
+func (br *Breaker) RecordSuccess(b *balancer.Backend) {
+    br.mu.Lock()
+    defer br.mu.Unlock()
+
+    b.ResetFailure()
+    b.SetCircuitState(balancer.Closed)
 }
